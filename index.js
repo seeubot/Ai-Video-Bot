@@ -22,7 +22,8 @@ const port = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Hardcoded token (NOT recommended for production!)
+const TELEGRAM_BOT_TOKEN = "8268736244:AAGdDjlRdvcCK3d1fGJ0bFOXABE3HUhCu3k";
 const TELEGRAM_CHAT_ID = "@newdatare";
 
 if (!TELEGRAM_BOT_TOKEN) {

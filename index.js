@@ -22,6 +22,12 @@ const port = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Webhook URL
+const WEBHOOK_URL = "https://only-rheta-school1660440-27a3b756.koyeb.app";
+
+// Middleware to parse JSON
+app.use(express.json());
+
 // Hardcoded token (NOT recommended for production!)
 const TELEGRAM_BOT_TOKEN = "8268736244:AAGdDjlRdvcCK3d1fGJ0bFOXABE3HUhCu3k";
 const TELEGRAM_CHAT_ID = "@newdatare";
@@ -34,6 +40,61 @@ if (!TELEGRAM_BOT_TOKEN) {
 const bannedIPs = new Set();
 
 app.use(requestIp.mw());
+
+// Set webhook on startup
+async function setWebhook() {
+  try {
+    const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+      url: `${WEBHOOK_URL}/webhook/${TELEGRAM_BOT_TOKEN}`,
+      allowed_updates: ["message", "callback_query"]
+    });
+    
+    if (response.data.ok) {
+      console.log("✅ Webhook set successfully!");
+    } else {
+      console.error("❌ Failed to set webhook:", response.data);
+    }
+  } catch (error) {
+    console.error("❌ Webhook setup error:", error.message);
+  }
+}
+
+// Webhook endpoint to receive Telegram updates
+app.post(`/webhook/${TELEGRAM_BOT_TOKEN}`, (req, res) => {
+  const update = req.body;
+  
+  // Acknowledge the webhook immediately
+  res.status(200).send('OK');
+  
+  // Process the update
+  if (update.message) {
+    const message = update.message;
+    const chatId = message.chat.id;
+    const text = message.text;
+    const username = message.from.username || message.from.first_name;
+    
+    console.log(`📨 Message from @${username}: ${text}`);
+    
+    // You can add custom message handling here
+    // For example, respond to specific commands
+    if (text === '/start') {
+      sendTelegramMessage(chatId, "🎥 Welcome! I'm your video generation bot. Use the API to generate videos!");
+    }
+  }
+});
+
+// Function to send text messages via Telegram
+async function sendTelegramMessage(chatId, text) {
+  try {
+    await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      chat_id: chatId,
+      text: text,
+      parse_mode: "Markdown"
+    });
+  } catch (error) {
+    console.error("Failed to send message:", error.message);
+  }
+}
 
 function downloadWithFFmpeg(m3u8Url, outputPath) {
   return new Promise((resolve, reject) => {
@@ -186,6 +247,10 @@ app.get("/generate-video", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`🔥 API running on http://localhost:${port}`);
+  console.log(`🌐 Webhook URL: ${WEBHOOK_URL}`);
+  
+  // Set up webhook
+  await setWebhook();
 });
